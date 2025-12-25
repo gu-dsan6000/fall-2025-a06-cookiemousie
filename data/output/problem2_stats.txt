@@ -1,0 +1,5 @@
+Total clusters: 6
+Total applications: 194
+Average application duration (sec): 2344.68
+Min application duration (sec): 10
+Max application duration (sec): 55957

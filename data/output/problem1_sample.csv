@@ -1,0 +1,11 @@
+log_entry,log_level
+17/02/01 17:18:01 INFO storage.ShuffleBlockFetcherIterator: Getting 934 non-empty blocks out of 1890 blocks,INFO
+17/06/09 13:33:13 INFO executor.Executor: Finished task 16.0 in stage 16391.0 (TID 656099). 2364 bytes result sent to driver,INFO
+"17/06/08 15:37:39 INFO storage.MemoryStore: Block rdd_593_25 stored as bytes in memory (estimated size 16.0 B, free 4.5 MB)",INFO
+17/06/09 21:55:32 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 239058,INFO
+17/06/09 11:03:52 INFO executor.Executor: Finished task 35.0 in stage 1590.0 (TID 63672). 2241 bytes result sent to driver,INFO
+17/06/09 15:18:16 INFO storage.BlockManager: Found block rdd_179_9 locally,INFO
+17/06/10 15:26:15 INFO executor.Executor: Running task 16.0 in stage 77.0 (TID 1556),INFO
+17/06/09 11:47:46 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 5301,INFO
+"17/03/28 18:13:03 INFO BlockManagerInfo: Added broadcast_6_piece139 in memory on mesos-master-1:33279 (size: 4.0 MB, free: 13.3 GB)",INFO
+"17/06/09 11:29:30 INFO python.PythonRunner: Times: total = 39, boot = -12, init = 50, finish = 1",INFO
