@@ -2,7 +2,7 @@
 
 
 
-## Guidlines
+## Guidelines
 
 Brief description of your approach for each problem
    - Key findings and insights from the data
@@ -17,7 +17,7 @@ Brief description of your approach for each problem
 - We found three unique log level values with "INFO" accounting for 99.92% of all log levels
 
 
-## Performance Obvservations
+## Performance Observations
 
 - The execution time with the entire dataset and utilizing the spark cluster can still be substantial leading to errors being costly
 - Testing locally on a sample of the data is import due to the performance and time considerations
