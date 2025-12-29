@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from pyspark.sql import functions as F
+import numpy as np
+from scipy.stats import gaussian_kde
 
 #input paths for our s3 data (or locally first to test)
 
@@ -20,20 +22,18 @@ run_type = "cluster"
 
 #local paths for running on ec2 instance, not cluster
 input_path_local = "data/sample"
-output_path_local = "data/output"
+
 
 #S3 paths
 S3_bucket= "jm3756-assignment-spark-cluster-logs"
 S3_input_path = f"s3a://{S3_bucket}/data/"
-S3_output_path = "data/output"
 
 
-if run_type == "local":
-    input_path = input_path_local
-    output_path = output_path_local
-else:
-    input_path = S3_input_path
-    output_path = S3_output_path
+#output path fixed locally
+output_path = "data/output"
+os.makedirs(output_path, exist_ok=True)
+
+input_path = input_path_local if run_type == "local" else S3_input_path
 
 #build spark session
 spark = SparkSession.builder \
@@ -81,11 +81,10 @@ cluster_summary_df = app_times_df.groupBy("cluster_id") \
     .agg(
         spark_count("app_id").alias("num_applications"),
         spark_min("start_time").alias("first_app_start"),
-        spark_max("end_time").alias("last_app_end"),
-        spark_min("duration_sec").alias("min_duration_sec"),
-        spark_max("duration_sec").alias("max_duration_sec"),
+        spark_max("end_time").alias("last_app_end")
     ).orderBy("cluster_id")
 
+#output our cluster summary info..
 cluster_summary_csv = os.path.join(output_path, "problem2_cluster_summary.csv")
 cluster_summary_df.write.mode("overwrite").option("header", True).csv(cluster_summary_csv)
 
@@ -96,37 +95,96 @@ cluster_summary_pd = cluster_summary_df.toPandas()
 #Calculating our summary stats finally...
 total_clusters = cluster_summary_pd.shape[0]
 total_apps = app_times_pd.shape[0]
-avg_duration = app_times_pd['duration_sec'].mean()
-min_duration = app_times_pd['duration_sec'].min()
-max_duration = app_times_pd['duration_sec'].max()
 
 summary_file = os.path.join(output_path, "problem2_stats.txt")
 with open(summary_file, "w") as f:
-    f.write(f"Total clusters: {total_clusters}\n")
+    f.write(f"Total unique clusters: {total_clusters}\n")
     f.write(f"Total applications: {total_apps}\n")
-    f.write(f"Average application duration (sec): {avg_duration:.2f}\n")
-    f.write(f"Min application duration (sec): {min_duration}\n")
-    f.write(f"Max application duration (sec): {max_duration}\n")
+    f.write(f"Average applications per cluster: {avg_apps_per_cluster:.2f}\n\n")
+    f.write("Most heavily used clusters:\n")
+    for _, row in top_clusters.iterrows():
+        f.write(f"  Cluster {row['cluster_id']}: {row['num_applications']} applications\n")
 
 #Now to plotting...
 
 #make a bar chart here
-plt.figure(figsize=(10,6))
-sns.barplot(x="cluster_id", y="num_applications", data=cluster_summary_pd)
-plt.xticks(rotation=45)
+
+#set some colors..
+cmap = plt.get_cmap("tab10")  
+colors = [cmap(i % cmap.N) for i in range(len(cluster_summary_df))]
+
+# Create bar chart
+plt.figure(figsize=(10, 6))
+bars = plt.bar(
+    cluster_summary_df["cluster_id"],
+    cluster_summary_df["num_applications"],
+    color = colors
+)
+
+# Add value labels on top of each bar
+for bar in bars:
+    height = bar.get_height()
+    plt.text(
+        bar.get_x() + bar.get_width() / 2,
+        height,
+        f"{int(height)}",
+        ha="center",
+        va="bottom"
+    )
+
+#set label info
 plt.xlabel("Cluster ID")
 plt.ylabel("Number of Applications")
 plt.title("Number of Applications per Cluster")
+
 plt.tight_layout()
-plt.savefig(os.path.join(output_path, "problem2_bar_chart.png"))
+
+#output our graph...
+plt.savefig("problem2_bar_chart.png")
 plt.close()
 
-#Make density plot to assess distribution of times by cluster
-plt.figure(figsize=(10,6))
-sns.displot(data=app_times_pd, x="duration_sec", hue="cluster_id", kind="kde", fill=True)
-plt.xlabel("Application Duration (sec)")
-plt.title("Application Duration Density per Cluster")
-plt.savefig(os.path.join(output_path, "problem2_density_plot.png"))
+
+#Now let's make density plot of largest cluster
+
+#pull out data just for largest cluster
+largest_cluster_id = (app_times_df.groupby("cluster_id").size().idxmax())
+cluster_df = app_times_df[app_times_df["cluster_id"] == largest_cluster_id]
+
+#make df for durations and dropping length
+durations = cluster_df["duration_sec"].dropna()
+durations = durations[durations > 0]
+n = len(durations)
+
+plt.figure(figsize=(10, 6))
+plt.hist(
+    durations,
+    bins=30,
+    density=True,
+    alpha=0.6
+)
+
+#kde portion...
+kde = gaussian_kde(durations)
+x_vals = np.logspace(
+    np.log10(durations.min()),
+    np.log10(durations.max()),
+    500
+)
+plt.plot(x_vals, kde(x_vals))
+
+#Set our log scale on x-axis
+plt.xscale("log")
+
+#set labels for axis 
+plt.xlabel("Job Duration (seconds, log scale)")
+plt.ylabel("Density")
+plt.title(
+    f"Job Duration Distribution for Largest Cluster "
+    f"(Cluster {largest_cluster_id}, n={n})"
+)
+
+plt.tight_layout()
+plt.savefig("problem2_density_plot.png")
 plt.close()
 
 spark.stop()

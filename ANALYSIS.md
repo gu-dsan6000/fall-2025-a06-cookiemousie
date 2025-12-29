@@ -25,3 +25,9 @@ Brief description of your approach for each problem
 ## Visualizations
 
 - These graphs xyz
+
+### Problem 2 Bar Chart
+![Number of applications per cluster](data\output\problem2_bar_chart.png)
+
+### Problem 2 Density of Biggest Cluster
+![Density plot](data\output\problem2_density_plot.png)
